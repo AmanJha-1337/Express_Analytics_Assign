@@ -1,332 +1,247 @@
-# Self-Corrective RAG Documentation Assistant
+# Express Analytics Assignment
+## Document Question Answering System using Retrieval-Augmented Generation (RAG)
 
-A Retrieval-Augmented Generation (RAG) application that answers questions from technical documentation using a LangGraph workflow, ChromaDB vector retrieval, Hugging Face embeddings, Groq-powered language models, and a FastAPI backend.
+## 1. Project Overview
 
-The system retrieves relevant document passages, evaluates their relevance, rewrites the search query when retrieval is insufficient, and generates answers grounded in the available context.
+This project implements a document question-answering application using Retrieval-Augmented Generation (RAG). It allows users to ask questions and receive answers grounded in retrieved document content.
 
-## Project Overview
+Instead of relying only on the language model's internal knowledge, the system retrieves relevant document chunks from a vector database and supplies them as context for answer generation.
 
-Technical documentation can be lengthy and difficult to search manually. This project provides a question-answering system over an indexed corpus of technical documents.
+The project combines document processing, semantic search, vector storage, and large language model generation in a modular workflow.
 
-The application follows a self-corrective RAG approach:
+### Objectives
 
-1. A user submits a technical question.
-2. The question is rewritten into a retrieval-friendly search query.
-3. ChromaDB retrieves the most similar document chunks.
-4. An LLM grades each retrieved passage for relevance.
-5. Relevant passages are passed to the answer-generation node.
-6. If no relevant passages are found, LangGraph rewrites the query and retries retrieval, subject to a retry limit.
-7. If the available context remains insufficient, the system returns a fallback response instead of guessing.
+- Process documents into searchable text chunks.
+- Generate embeddings for semantic retrieval.
+- Retrieve relevant information from a vector database.
+- Generate context-grounded answers using an LLM.
+- Expose application functionality through REST APIs.
+- Handle questions when relevant context is unavailable.
 
-## Key Features
+## 2. Key Features
 
-- **Query analysis:** Rewrites the user's question to improve semantic retrieval.
-- **Semantic search:** Retrieves document chunks from a persistent ChromaDB collection.
-- **Document grading:** Uses an LLM to classify retrieved passages as relevant or irrelevant.
-- **Self-correction:** Rewrites the query and retries retrieval when no relevant passages are found.
-- **Grounded generation:** Instructs the LLM to answer using only the retrieved context.
-- **Source references:** Includes source filenames and page references in generated answers where available.
-- **Document processing module:** Supports PDF, TXT, Markdown, and HTML parsing, along with URL-based HTML ingestion through the ingestion module.
-- **REST API:** Exposes question answering, document listing, feedback, and file-receiving endpoints through FastAPI.
+- Document loading support for PDF, TXT, Markdown, and HTML.
+- URL-based document loading in the ingestion module.
+- Text splitting with configurable chunk size and overlap.
+- Semantic retrieval using sentence-transformer embeddings.
+- Persistent vector storage using ChromaDB.
+- RAG workflow orchestration using LangGraph.
+- LLM integration through the Groq API.
+- FastAPI endpoints for querying, health checks, document listing, and feedback.
+- Feedback storage using JSON Lines format.
+- Relevance grading and no-answer handling in the RAG workflow.
 
-## Technology Stack
+## 3. Technology Stack
 
-| Component | Technology |
+| Technology | Purpose |
 |---|---|
-| Programming language | Python |
-| Workflow orchestration | LangGraph |
-| LLM integration | LangChain Groq |
-| Language model | Llama 3.3 70B Versatile (configurable) |
-| Embedding model | Sentence Transformers — `all-MiniLM-L6-v2` |
-| Vector database | ChromaDB |
-| Document processing | PyMuPDF, BeautifulSoup |
-| Text splitting | RecursiveCharacterTextSplitter |
-| API framework | FastAPI |
-| API server | Uvicorn |
-| Configuration | python-dotenv |
+| Python | Core application logic |
+| FastAPI | REST API framework |
+| LangGraph | RAG workflow orchestration |
+| LangChain | Document loading and text splitting |
+| Groq API | Language model inference |
+| Llama 3.3 70B Versatile | Configured default language model |
+| Sentence Transformers | Text embedding generation |
+| ChromaDB | Vector storage and similarity search |
+| Uvicorn | ASGI application server |
+| JSON / JSONL | Document metadata and feedback storage |
 
-## System Architecture
+## 4. System Architecture
 
-The application has two main parts: a document-ingestion/indexing pipeline and a question-answering workflow.
-
-### 1. Document Ingestion and Indexing
-
-The ingestion module extracts text, splits documents into chunks, generates embeddings through the configured embedding model, and stores the chunks in ChromaDB.
+The application follows a modular RAG architecture.
 
 ```text
-Documents / URLs
-       |
-       v
-Document Loading
-(PDF / TXT / MD / HTML / URL)
-       |
-       v
-Text Extraction
-       |
-       v
-Recursive Character Text Splitter
-       |
-       v
-Document Chunks + Metadata
-       |
-       v
-Hugging Face Embeddings
-       |
-       v
-ChromaDB Vector Store
+                  User Question
+                        |
+                        v
+                 FastAPI Endpoint
+                        |
+                        v
+                  Query Analysis
+                        |
+                        v
+                 Semantic Retrieval
+                        |
+                        v
+                 Document Grading
+                        |
+               +--------+--------+
+               |                 |
+        Relevant Context   Insufficient Context
+               |                 |
+               v                 v
+       Answer Generation      No-Answer Path
+               |                 |
+               +--------+--------+
+                        |
+                        v
+                 API Response
+                        |
+                        v
+                 Answer and Sources
 ```
 
-Supported local document formats in the ingestion module:
+### Architecture Components
 
-- PDF
-- TXT
-- Markdown
-- HTML
+**1. Document Processing**
 
-The URL loader extracts readable text from HTML pages.
+The ingestion module supports loading document content from supported file formats and URLs. The content can then be split into smaller chunks for retrieval.
 
-### 2. Self-Corrective LangGraph RAG Workflow
+**2. Embedding Generation**
 
-The question-answering workflow is implemented as a LangGraph `StateGraph`.
+The embedding model `sentence-transformers/all-MiniLM-L6-v2` converts text into numerical vector representations.
 
-```mermaid
-flowchart TD
-    A([User Question]) --> B[Query Analysis]
-    B --> C[Retrieval from ChromaDB]
-    C --> D[Document Grading]
-    D --> E{Relevant Documents Found?}
-    E -- Yes --> F[Answer Generation]
-    F --> G([Answer with Source References])
-    E -- No --> H{Retry Limit Reached?}
-    H -- No --> I[Rewrite Search Query]
-    I --> B
-    H -- Yes --> J[Fallback: Insufficient Context]
-    J --> K([Return Fallback Response])
-```
+**3. Vector Storage**
 
-#### Workflow Nodes
+ChromaDB stores document embeddings and associated metadata, enabling semantic similarity search.
+
+**4. Retrieval**
+
+When a user asks a question, the system retrieves the most relevant document chunks from the vector database.
+
+**5. Document Grading**
+
+The workflow evaluates the relevance of retrieved documents before generating an answer.
+
+**6. Answer Generation**
+
+The retrieved context is passed to the configured Groq language model to generate a context-grounded answer.
+
+**7. No-Answer Handling**
+
+If the retrieved information is insufficient, the workflow can follow a no-answer path rather than generating an unsupported response.
+
+## 5. RAG Workflow
+
+The LangGraph workflow contains the following nodes:
 
 | Node | Responsibility |
 |---|---|
-| Query Analysis | Rewrites the original question into a concise search query. On a retry, it creates a broader query with useful synonyms. |
-| Retrieval | Performs similarity search in ChromaDB and returns the top-k document chunks. |
-| Document Grading | Uses the Groq LLM to evaluate each retrieved passage as relevant or irrelevant. |
-| Generation | Generates an answer using the relevant retrieved context and asks the model to include source references. |
-| No Answer | Returns a fallback message when relevant information cannot be found within the retry limit. |
+| `query_analysis` | Analyzes the user's question |
+| `retrieval` | Retrieves relevant document chunks |
+| `document_grading` | Evaluates the relevance of retrieved documents |
+| `generation` | Generates an answer using the retrieved context |
+| `no_answer` | Handles cases where sufficient context is unavailable |
 
-#### State Management
+This modular workflow separates question analysis, retrieval, relevance evaluation, and answer generation.
 
-The LangGraph state uses a `TypedDict` schema to carry information between nodes.
-
-| State field | Purpose |
-|---|---|
-| `question` | Original user question |
-| `search_query` | Current rewritten query used for retrieval |
-| `documents` | Retrieved document chunks |
-| `relevant_documents` | Chunks that pass relevance grading |
-| `retry_count` | Number of unsuccessful retrieval attempts |
-| `answer` | Generated answer or fallback response |
-
-The retry count is updated when document grading finds no relevant passages. A conditional edge then decides whether to generate an answer, repeat query analysis, or return the fallback response.
-
-## Document Chunking and Embedding Strategy
-
-### Chunking
-
-The project uses LangChain's `RecursiveCharacterTextSplitter`.
-
-| Parameter | Default value |
-|---|---:|
-| Chunk size | 900 characters |
-| Chunk overlap | 150 characters |
-| Retrieval top-k | 5 |
-
-The splitter prioritizes paragraph and line boundaries before splitting into smaller text units:
-
-```python
-separators = ["\n\n", "\n", ". ", " ", ""]
-```
-
-**Why this strategy?**
-
-- Recursive splitting attempts to preserve paragraph and line boundaries.
-- A 900-character chunk provides a manageable passage for semantic retrieval and LLM context.
-- A 150-character overlap helps retain context across neighboring chunks.
-- Metadata such as source filename and PDF page number is retained for source attribution.
-
-These values can be adjusted through environment variables.
-
-### Embeddings
-
-The application uses:
-
-```text
-sentence-transformers/all-MiniLM-L6-v2
-```
-
-The embedding model converts document chunks and user search queries into numerical vectors. ChromaDB uses cosine similarity to retrieve semantically similar content.
-
-### Vector Store
-
-ChromaDB is configured with a persistent local directory:
-
-```text
-data/chroma/
-```
-
-Indexed vectors are retained between application restarts.
-
-## Project Structure
+## 6. Project Structure
 
 ```text
 Express_Analytics_Assign/
-|
-|-- app/
-|   |-- __init__.py
-|   |-- config.py          # Environment variables and configuration
-|   |-- ingestion.py       # Document loading, parsing, splitting and indexing
-|   |-- main.py            # FastAPI application and endpoints
-|   |-- rag_graph.py       # LangGraph RAG workflow and nodes
-|   |-- schemas.py         # Pydantic request and response schemas
-|   |-- vectorstore.py     # Hugging Face embeddings and ChromaDB setup
-|
-|-- data/
-|   |-- uploads/           # Intended location for uploaded documents
-|   |-- chroma/            # Persistent vector database (created at runtime)
-|   |-- documents.json     # Document manifest (created during indexing)
-|   |-- feedback.jsonl     # Feedback records (created after feedback submission)
-|
-|-- docs/
-|   |-- fastapi_basics.md
-|   |-- langgraph_overview.md
-|   |-- pydantic_validation.md
-|   |-- python_typing.md
-|
-|-- requirements.txt
-|-- .gitignore
-|-- README.md
-|-- .env                  # Create locally; do not commit secrets
+├── app/
+│   ├── config.py
+│   ├── ingestion.py
+│   ├── vectorstore.py
+│   ├── rag_graph.py
+│   ├── schemas.py
+│   └── main.py
+├── data/
+│   ├── uploads/
+│   └── chroma/
+├── img/
+│   ├── png-1.jpg
+│   ├── png-2.jpg
+│   ├── png-3.jpg
+│   └── png-4.jpg
+├── requirements.txt
+└── README.md
 ```
 
-## Installation and Setup
+The structure above illustrates the main project components. Refer to the actual repository for the complete file structure.
+
+## 7. Environment Setup
 
 ### Prerequisites
 
-- Python 3.10 or later
-- pip
-- A Groq API key
+- Python installed on your system.
+- pip package manager.
+- A Groq API key.
+- Git.
 
-### 1. Clone the repository
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/AmanJha-1337/Express_Analytics_Assign.git
 cd Express_Analytics_Assign
 ```
 
-### 2. Create and activate a virtual environment
+### Step 2: Create a Virtual Environment
 
-**Windows:**
+**Windows**
 
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-**macOS / Linux:**
+**macOS/Linux**
 
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install dependencies
+### Step 3: Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
+### Step 4: Configure Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root.
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
-
+GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=llama-3.3-70b-versatile
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-
 CHUNK_SIZE=900
 CHUNK_OVERLAP=150
 TOP_K=5
 MAX_RETRIES=1
 ```
 
-Get an API key from the [Groq Console](https://console.groq.com/).
+Replace `your_groq_api_key` with your actual API key.
 
-**Important:** Never commit your actual API key or `.env` file to GitHub.
+**Security considerations:**
 
-### 5. Index the bundled Markdown corpus
+- Never commit your real API key to GitHub.
+- Add `.env` to `.gitignore`.
+- If needed, provide a `.env.example` file containing placeholder values.
 
-The repository includes four Markdown documents in `docs/`. The ingestion functions are implemented in `app/ingestion.py`; the current FastAPI upload route does not automatically call them. To index the bundled Markdown corpus, run this command from the repository root:
+## 8. Running the Application
 
-```bash
-python -c "from pathlib import Path; from app.ingestion import ingest_saved_file; [print(ingest_saved_file(p)) for p in Path('docs').glob('*.md')]"
-```
-
-The first run may download the Sentence Transformers embedding model. Indexed vectors are stored under `data/chroma/`, and the document manifest is written to `data/documents.json`.
-
-### 6. Run the application
-
-From the repository root:
+Run the following command from the project root:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The API will be available at:
+Once the server starts, access the following local URLs:
 
-```text
-http://127.0.0.1:8000
-```
+| Resource | URL |
+|---|---|
+| Application root | `http://127.0.0.1:8000/` |
+| Health check | `http://127.0.0.1:8000/health` |
+| Interactive API documentation | `http://127.0.0.1:8000/docs` |
 
-Interactive Swagger documentation:
+The interactive API documentation allows you to inspect the available endpoints and test requests.
 
-```text
-http://127.0.0.1:8000/docs
-```
+## 9. API Endpoints
 
-## API Documentation
-
-The FastAPI application defines the following endpoints.
+The application exposes the following endpoints.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/` | API welcome message |
-| GET | `/health` | Basic health check |
-| POST | `/query` | Submit a question to the RAG workflow |
-| POST | `/ingest` | Receive an uploaded file and return its metadata |
-| GET | `/documents` | List documents recorded in the ingestion manifest |
-| POST | `/feedback` | Save thumbs-up or thumbs-down feedback |
+| GET | `/` | Returns basic application information |
+| GET | `/health` | Checks application health |
+| POST | `/query` | Submits a question to the RAG workflow |
+| POST | `/ingest` | Accepts an uploaded file and returns its metadata |
+| GET | `/documents` | Lists document records |
+| POST | `/feedback` | Records user feedback |
 
-### 1. Home
-
-**Request**
-
-```http
-GET /
-```
-
-**Example response**
-
-```json
-{
-  "message": "RAG Documentation Assistant is running.",
-  "docs": "/docs",
-  "upload_hint": "Use POST /ingest in Swagger UI to upload PDF files."
-}
-```
-
-### 2. Health Check
+### 9.1 Health Check
 
 **Request**
 
@@ -334,15 +249,15 @@ GET /
 GET /health
 ```
 
-**Example response**
+**Example cURL request**
 
-```json
-{
-  "status": "ok"
-}
+```bash
+curl http://127.0.0.1:8000/health
 ```
 
-### 3. Query
+The endpoint returns the health status defined by the application.
+
+### 9.2 Submit a Question
 
 **Request**
 
@@ -351,53 +266,51 @@ POST /query
 Content-Type: application/json
 ```
 
-**Request body**
+**Example request body**
 
 ```json
 {
-  "question": "What is LangGraph and how does a StateGraph work?"
+  "question": "What is the main topic of the document?"
 }
 ```
 
-**Example response structure**
+**Example cURL request**
+
+```bash
+curl -X POST "http://127.0.0.1:8000/query" \
+  -H "Content-Type: application/json" \
+  -d "{\"question\":\"What is the main topic of the document?\"}"
+```
+
+**Illustrative response format**
 
 ```json
 {
-  "question": "What is LangGraph and how does a StateGraph work?",
-  "answer": "Answer generated from the retrieved documentation, with source references.",
-  "sources": [
-    {
-      "source": "langgraph_overview.md",
-      "page": null,
-      "chunk_id": "langgraph_overview.md:1",
-      "excerpt": "Relevant retrieved text..."
-    }
-  ],
-  "retries": 0
+  "answer": "The document discusses its main topic and supporting details.",
+  "sources": []
 }
 ```
 
-The answer and source details depend on the indexed corpus and model response. This example illustrates the response structure; it is not a captured live result.
+This is an illustrative example, not a guaranteed response. The actual answer and source fields depend on the indexed documents and the response schema.
 
-### 4. Ingest
+### 9.3 Upload a Document
 
 **Request**
 
 ```http
 POST /ingest
-Content-Type: multipart/form-data
 ```
 
-Example request using cURL:
+**Example cURL request**
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/ingest" \
   -F "file=@sample.pdf"
 ```
 
-**Current implementation note:** The present `/ingest` route receives the uploaded file and returns its filename, content type, and size. It does not yet save or index that upload. The document parsing and indexing functionality is implemented separately in `app/ingestion.py`.
+**Current implementation note:** The endpoint accepts the uploaded file and returns metadata such as its filename, content type, and size. It does not currently save or index the uploaded content into ChromaDB.
 
-### 5. List Documents
+### 9.4 List Documents
 
 **Request**
 
@@ -405,25 +318,15 @@ curl -X POST "http://127.0.0.1:8000/ingest" \
 GET /documents
 ```
 
-**Example response structure**
+**Example cURL request**
 
-```json
-{
-  "count": 1,
-  "documents": [
-    {
-      "filename": "langgraph_overview.md",
-      "chunks": 3,
-      "type": "md",
-      "added_at": "2026-11-01T10:00:00+00:00"
-    }
-  ]
-}
+```bash
+curl http://127.0.0.1:8000/documents
 ```
 
-This is an illustrative response. The endpoint returns the current document manifest.
+The endpoint returns document records maintained by the application.
 
-### 6. Feedback
+### 9.5 Submit Feedback
 
 **Request**
 
@@ -432,98 +335,128 @@ POST /feedback
 Content-Type: application/json
 ```
 
-**Request body**
+The request body must match the `FeedbackRequest` schema defined in `app/schemas.py`.
 
-```json
-{
-  "question": "What is LangGraph?",
-  "answer": "LangGraph is a framework for building stateful graph-based workflows.",
-  "rating": "up",
-  "comment": "The answer was useful."
-}
-```
+Use the interactive API documentation at `/docs` to inspect the required fields and test the endpoint.
 
-The `rating` field accepts `up` or `down`. Feedback is appended to `data/feedback.jsonl`.
+Feedback is stored in JSON Lines format for later inspection.
 
-## Design Decisions and Trade-offs
+## 10. Design Decisions and Trade-offs
 
-### 1. LangGraph for workflow orchestration
+### 10.1 Chunk Size and Overlap
 
-A graph-based workflow makes each RAG stage explicit and allows conditional routing after document grading. This is useful for implementing self-correction without mixing retrieval, evaluation, and generation into one function.
+The default configuration uses a chunk size of 900 characters and an overlap of 150 characters.
 
-### 2. ChromaDB for vector storage
+**Benefits**
+- Overlap helps preserve context across chunk boundaries.
+- Chunking makes retrieval more focused than searching an entire document at once.
 
-ChromaDB provides local persistent vector storage and integrates with LangChain. It keeps the prototype straightforward to run without provisioning a separate vector database server.
+**Trade-offs**
+- Smaller chunks can improve retrieval precision but may lose surrounding context.
+- Larger chunks preserve more context but can include irrelevant information.
 
-### 3. Local sentence-transformer embeddings
+### 10.2 Embedding Model
 
-The `all-MiniLM-L6-v2` embedding model avoids dependence on a paid embedding API. It can run locally on CPU, with a corresponding inference-time trade-off.
+The application uses `sentence-transformers/all-MiniLM-L6-v2`.
 
-### 4. Groq for LLM inference
+**Benefits**
+- Lightweight and suitable for semantic retrieval.
+- Can generate embeddings without requiring a hosted embedding API.
 
-Groq provides the chat model used for query rewriting, relevance grading, and answer generation. The API key is read from an environment variable rather than hard-coded.
+**Trade-offs**
+- Retrieval quality varies by domain and question type.
+- A domain-specific embedding model may perform better for specialized documents.
 
-### 5. Context-grounded generation
+### 10.3 ChromaDB
 
-The generation prompt instructs the model to use only the retrieved documentation and to state when the context does not contain the answer. This reduces the risk of unsupported answers, although it does not guarantee that every generated claim is correct.
+ChromaDB provides persistent vector storage.
 
-### 6. Bounded retries
+**Benefits**
+- Supports semantic similarity search.
+- Provides local persistent storage.
 
-The retry limit prevents the graph from looping indefinitely when the corpus does not contain relevant information. A fallback response is returned after unsuccessful retrieval attempts.
+**Trade-offs**
+- Retrieval quality depends on the embedding model, chunking strategy, and search configuration.
+- Large-scale deployments may require additional infrastructure and optimization.
 
-## Assumptions and Limitations
+### 10.4 Groq API
 
-- The indexed corpus is the source of truth for answering questions; the system does not currently use an external web-search fallback.
-- The current API upload route receives a file but is not yet connected to the file-saving and indexing pipeline.
-- Local-file parsing/indexing and URL parsing/indexing functions are implemented in the ingestion module, but no API endpoint currently invokes URL ingestion.
-- The document manifest is maintained by the ingestion module and lists successfully indexed sources.
-- The LLM-based relevance grader evaluates retrieved chunks individually. Its decisions can be imperfect.
-- Source references are based on document metadata supplied during ingestion.
-- The generation prompt encourages grounded responses, but a separate answer-groundedness verification node is not implemented.
-- Conversation memory and a dedicated frontend are not part of the current implementation.
+The application uses a hosted language model through the Groq API.
 
-## Future Improvements
+**Benefits**
+- Avoids running a large language model locally.
+- Simplifies integration with LLM-based answer generation.
 
-1. Connect `POST /ingest` to the existing file-saving and indexing pipeline, including file-size and file-type validation.
-2. Add URL ingestion through the API.
-3. Add automated tests for ingestion, graph routing, retrieval, and API endpoints.
-4. Add a groundedness-check node to verify generated answers against retrieved passages.
-5. Introduce structured logging and more detailed operational monitoring.
-6. Add session-based conversation memory for follow-up questions.
-7. Add authentication, upload security controls, and stricter CORS configuration before deployment.
-8. Consider hybrid retrieval or reranking to improve retrieval quality on technical content.
+**Trade-offs**
+- Requires API credentials and internet access.
+- Availability, latency, and usage limits depend on the provider.
 
-## Quick Start
+### 10.5 LangGraph Workflow
 
-```bash
-# Clone the repository
-git clone https://github.com/AmanJha-1337/Express_Analytics_Assign.git
-cd Express_Analytics_Assign
+The RAG pipeline separates query analysis, retrieval, document grading, and answer generation.
 
-# Create and activate an environment (Windows)
-python -m venv venv
-venv\Scripts\activate
+**Benefits**
+- Makes the workflow modular and easier to extend.
+- Supports explicit handling of insufficient context.
 
-# Install dependencies
-pip install -r requirements.txt
+**Trade-offs**
+- Additional workflow steps increase implementation complexity.
+- Extra processing may increase response latency.
 
-# Create a .env file and add GROQ_API_KEY
+### 10.6 No-Answer Handling
 
-# Index the bundled Markdown documents
-python -c "from pathlib import Path; from app.ingestion import ingest_saved_file; [print(ingest_saved_file(p)) for p in Path('docs').glob('*.md')]"
+The workflow includes a path for questions that cannot be supported by the retrieved context.
 
-# Start the API
-uvicorn app.main:app --reload
-```
+**Benefits**
+- Helps reduce unsupported answers.
+- Encourages context-grounded responses.
 
-Open `http://127.0.0.1:8000/docs` to explore the API.
+**Trade-offs**
+- Incorrect relevance grading may reject information that could have been useful.
+- Retrieval and grading quality should be evaluated using representative questions.
 
-## Author
+## 11. Limitations and Future Improvements
 
-**Aman Kumar Jha**  
-GitHub: [AmanJha-1337](https://github.com/AmanJha-1337)  
-Project Repository: [Express_Analytics_Assign](https://github.com/AmanJha-1337/Express_Analytics_Assign)
+Potential improvements include:
 
----
+1. Connect the upload endpoint to the full document ingestion and indexing pipeline.
+2. Add file validation, size limits, and clearer error handling.
+3. Return richer source metadata, including document names and relevant text chunks.
+4. Add automated tests for API endpoints and RAG workflow nodes.
+5. Evaluate retrieval quality using a representative question-and-answer dataset.
+6. Add authentication and rate limiting before public deployment.
+7. Improve logging and monitoring for retrieval and generation failures.
+8. Build a frontend for document management, question answering, and feedback.
 
-Developed as a take-home assignment for the **AI/ML Engineer Intern – Express Analytics** selection process.
+## 12. Project Output
+
+The following screenshots demonstrate the application's output.
+
+### Output 1
+
+![Project Output 1](img/png-1.jpg)
+
+### Output 2
+
+![Project Output 2](img/png-2.jpg)
+
+### Output 3
+
+![Project Output 3](img/png-3.jpg)
+
+### Output 4
+
+![Project Output 4](img/png-4.jpg)
+
+## 13. Conclusion
+
+This project demonstrates a modular RAG-based question-answering backend that combines document processing, semantic retrieval, vector storage, and LLM-based generation.
+
+The implementation provides a foundation for building document-grounded AI applications. It also identifies opportunities to improve ingestion, retrieval evaluation, source attribution, and reliability.
+
+## 14. Repository
+
+**GitHub Repository:**  
+https://github.com/AmanJha-1337/Express_Analytics_Assign
+
+**Author:** Aman Kumar Jha
