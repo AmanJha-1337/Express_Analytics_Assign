@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+data/chroma/
+data/uploads/*
+!data/uploads/.gitkeep
+data/documents.json
+data/feedback.jsonl
+venv
+.venv
