@@ -48,7 +48,7 @@ The project combines document processing, semantic search, vector storage, and l
 
 ## 4. System Architecture
 
-The application follows a modular RAG architecture.
+The application follows a modular Retrieval-Augmented Generation architecture.
 
 ```text
                   User Question
@@ -380,4 +380,58 @@ The application uses a hosted language model through the Groq API.
 
 **Benefits**
 - Avoids running a large language model locally.
-- Simplifies integration
+- Simplifies integration with LLM-based answer generation.
+
+**Trade-offs**
+- Requires API credentials and internet access.
+- Availability, latency, and usage limits depend on the provider.
+
+### 10.5 LangGraph Workflow
+
+The RAG pipeline separates query analysis, retrieval, document grading, and answer generation.
+
+**Benefits**
+- Makes the workflow modular and easier to extend.
+- Supports explicit handling of insufficient context.
+
+**Trade-offs**
+- Additional workflow steps increase implementation complexity.
+- Extra processing may increase response latency.
+
+### 10.6 No-Answer Handling
+
+The workflow includes a path for questions that cannot be supported by the retrieved context.
+
+**Benefits**
+- Helps reduce unsupported answers.
+- Encourages context-grounded responses.
+
+**Trade-offs**
+- Incorrect relevance grading may reject information that could have been useful.
+- Retrieval and grading quality should be evaluated using representative questions.
+
+## 11. Limitations and Future Improvements
+
+Potential improvements include:
+
+1. Connect the upload endpoint to the full document ingestion and indexing pipeline.
+2. Add file validation, size limits, and clearer error handling.
+3. Return richer source metadata, including document names and relevant text chunks.
+4. Add automated tests for API endpoints and RAG workflow nodes.
+5. Evaluate retrieval quality using a representative question-and-answer dataset.
+6. Add authentication and rate limiting before public deployment.
+7. Improve logging and monitoring for retrieval and generation failures.
+8. Build a frontend for document management, question answering, and feedback.
+
+## 12. Conclusion
+
+This project demonstrates a modular RAG-based question-answering backend that combines document processing, semantic retrieval, vector storage, and LLM-based generation.
+
+The implementation provides a foundation for building document-grounded AI applications. It also identifies opportunities to improve ingestion, retrieval evaluation, source attribution, and reliability.
+
+## 13. Repository
+
+**GitHub Repository:**  
+https://github.com/AmanJha-1337/Express_Analytics_Assign
+
+**Author:** Aman Kumar Jha
