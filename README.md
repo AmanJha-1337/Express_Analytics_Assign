@@ -97,7 +97,7 @@ ChromaDB stores document embeddings and associated metadata, enabling semantic s
 
 **4. Retrieval**
 
-When a user asks a question, the system retrieves the most relevant document chunks from the vector database.
+When a user asks a question, the system retrieves relevant document chunks from the vector database.
 
 **5. Document Grading**
 
@@ -125,30 +125,25 @@ The LangGraph workflow contains the following nodes:
 
 This modular workflow separates question analysis, retrieval, relevance evaluation, and answer generation.
 
-## 6. Project Structure
+## 6. Project Output
 
-```text
-Express_Analytics_Assign/
-├── app/
-│   ├── config.py
-│   ├── ingestion.py
-│   ├── vectorstore.py
-│   ├── rag_graph.py
-│   ├── schemas.py
-│   └── main.py
-├── data/
-│   ├── uploads/
-│   └── chroma/
-├── img/
-│   ├── png-1.jpg
-│   ├── png-2.jpg
-│   ├── png-3.jpg
-│   └── png-4.jpg
-├── requirements.txt
-└── README.md
-```
+The following screenshots demonstrate the application's output.
 
-The structure above illustrates the main project components. Refer to the actual repository for the complete file structure.
+### Output 1
+
+![Project Output 1](img/png-1.jpg)
+
+### Output 2
+
+![Project Output 2](img/png-2.jpg)
+
+### Output 3
+
+![Project Output 3](img/png-3.jpg)
+
+### Output 4
+
+![Project Output 4](img/png-4.jpg)
 
 ## 7. Environment Setup
 
@@ -226,7 +221,7 @@ Once the server starts, access the following local URLs:
 | Health check | `http://127.0.0.1:8000/health` |
 | Interactive API documentation | `http://127.0.0.1:8000/docs` |
 
-The interactive API documentation allows you to inspect the available endpoints and test requests.
+The interactive API documentation allows you to inspect available endpoints and test requests.
 
 ## 9. API Endpoints
 
@@ -385,78 +380,4 @@ The application uses a hosted language model through the Groq API.
 
 **Benefits**
 - Avoids running a large language model locally.
-- Simplifies integration with LLM-based answer generation.
-
-**Trade-offs**
-- Requires API credentials and internet access.
-- Availability, latency, and usage limits depend on the provider.
-
-### 10.5 LangGraph Workflow
-
-The RAG pipeline separates query analysis, retrieval, document grading, and answer generation.
-
-**Benefits**
-- Makes the workflow modular and easier to extend.
-- Supports explicit handling of insufficient context.
-
-**Trade-offs**
-- Additional workflow steps increase implementation complexity.
-- Extra processing may increase response latency.
-
-### 10.6 No-Answer Handling
-
-The workflow includes a path for questions that cannot be supported by the retrieved context.
-
-**Benefits**
-- Helps reduce unsupported answers.
-- Encourages context-grounded responses.
-
-**Trade-offs**
-- Incorrect relevance grading may reject information that could have been useful.
-- Retrieval and grading quality should be evaluated using representative questions.
-
-## 11. Limitations and Future Improvements
-
-Potential improvements include:
-
-1. Connect the upload endpoint to the full document ingestion and indexing pipeline.
-2. Add file validation, size limits, and clearer error handling.
-3. Return richer source metadata, including document names and relevant text chunks.
-4. Add automated tests for API endpoints and RAG workflow nodes.
-5. Evaluate retrieval quality using a representative question-and-answer dataset.
-6. Add authentication and rate limiting before public deployment.
-7. Improve logging and monitoring for retrieval and generation failures.
-8. Build a frontend for document management, question answering, and feedback.
-
-## 12. Project Output
-
-The following screenshots demonstrate the application's output.
-
-### Output 1
-
-![Project Output 1](img/png-1.jpg)
-
-### Output 2
-
-![Project Output 2](img/png-2.jpg)
-
-### Output 3
-
-![Project Output 3](img/png-3.jpg)
-
-### Output 4
-
-![Project Output 4](img/png-4.jpg)
-
-## 13. Conclusion
-
-This project demonstrates a modular RAG-based question-answering backend that combines document processing, semantic retrieval, vector storage, and LLM-based generation.
-
-The implementation provides a foundation for building document-grounded AI applications. It also identifies opportunities to improve ingestion, retrieval evaluation, source attribution, and reliability.
-
-## 14. Repository
-
-**GitHub Repository:**  
-https://github.com/AmanJha-1337/Express_Analytics_Assign
-
-**Author:** Aman Kumar Jha
+- Simplifies integration
